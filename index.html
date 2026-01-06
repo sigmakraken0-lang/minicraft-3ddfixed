@@ -2,20 +2,19 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>MiniCraft 3D GitHub</title>
+<title>MiniCraft 3D Prototype</title>
 <style>
   body { margin:0; overflow:hidden; background:#87CEEB; }
   #menu { 
-    position:absolute; inset:0; 
-    display:flex; flex-direction:column; 
-    justify-content:center; align-items:center; 
-    background:#111; color:white; font-family:Arial; z-index:10;
+    position:absolute; inset:0; display:flex; flex-direction:column; 
+    justify-content:center; align-items:center; background:#111; color:white; font-family:Arial; z-index:10;
   }
   button { padding:15px 40px; font-size:20px; cursor:pointer; margin-top:20px; }
+  #inventory { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:5px; }
+  .slot { width:50px;height:50px;border:2px solid white;background:rgba(0,0,0,0.3); }
 </style>
 </head>
 <body>
-
 <div id="menu">
   <h1>MiniCraft 3D Browser</h1>
   <button onclick="startGame()">Play</button>
@@ -25,43 +24,66 @@
   <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_07f24f1c27.mp3?filename=game-loop-112654.mp3" type="audio/mpeg">
 </audio>
 
+<div id="inventory">
+  <div class="slot"></div>
+  <div class="slot"></div>
+  <div class="slot"></div>
+  <div class="slot"></div>
+  <div class="slot"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/PointerLockControls.js"></script>
 
 <script>
-let scene, camera, renderer, player;
-let keys = {};
-let npcs = [];
+let scene, camera, renderer, controls, player, npcs=[];
+let keys={};
 
 const menu = document.getElementById("menu");
 const bgMusic = document.getElementById("bgMusic");
+const inventory = document.getElementById("inventory");
+inventory.style.display="none";
 
 function startGame(){
   menu.style.display="none";
+  inventory.style.display="flex";
   bgMusic.play();
 
-  // Сцена
+  // Сцена и камера
   scene = new THREE.Scene();
-
-  // Камера
   camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-  // Рендер
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
   // Свет
-  const light = new THREE.DirectionalLight(0xffffff, 1);
+  const light = new THREE.DirectionalLight(0xffffff,1);
   light.position.set(10,20,10);
   scene.add(light);
 
-  // Биомы
+  // Игрок
+  const playerGeo = new THREE.BoxGeometry(1,2,1);
+  const playerMat = new THREE.MeshStandardMaterial({color:0xff0000});
+  player = new THREE.Mesh(playerGeo,playerMat);
+  player.position.set(0,1,0);
+  scene.add(player);
+
+  // PointerLockControls
+  controls = new THREE.PointerLockControls(camera, renderer.domElement);
+  scene.add(controls.getObject());
+
+  document.body.addEventListener('click', ()=>{
+    controls.lock();
+  });
+
+  // Биомы и земля
   const size = 30;
   for(let x=-size/2;x<size/2;x++){
     for(let z=-size/2;z<size/2;z++){
-      let color=0x3a7d44; // трава
-      if(x<0 && z<0) color=0xffffa0; // песок
-      if(x>0 && z>0) color=0xffffff; // снег
+      let color=0x3a7d44;
+      if(x<0 && z<0) color=0xffffa0;
+      if(x>0 && z>0) color=0xffffff;
       const geo = new THREE.BoxGeometry(1,1,1);
       const mat = new THREE.MeshStandardMaterial({color});
       const cube = new THREE.Mesh(geo,mat);
@@ -77,17 +99,10 @@ function startGame(){
   water.position.set(-10,0.25,10);
   scene.add(water);
 
-  // Игрок
-  const playerGeo = new THREE.BoxGeometry(1,2,1);
-  const playerMat = new THREE.MeshStandardMaterial({color:0xff0000});
-  player = new THREE.Mesh(playerGeo,playerMat);
-  player.position.set(0,1,0);
-  scene.add(player);
-
-  // NPC
-  for(let i=0;i<5;i++){
+  // NPC (животные + Villager + Golem + Warden)
+  for(let i=0;i<10;i++){
     const npcGeo = new THREE.BoxGeometry(1,2,1);
-    const npcMat = new THREE.MeshStandardMaterial({color:0x00ff00});
+    const npcMat = new THREE.MeshStandardMaterial({color:Math.random()>0.7?0xaaaaaa:0x00ff00});
     const npc = new THREE.Mesh(npcGeo,npcMat);
     npc.position.set(Math.random()*20-10,1,Math.random()*20-10);
     npcs.push({mesh:npc,dir:Math.random()*Math.PI*2});
@@ -97,21 +112,22 @@ function startGame(){
   animate();
 }
 
-// Управление
+// Управление клавишами
 document.addEventListener('keydown',(e)=>keys[e.key.toLowerCase()]=true);
 document.addEventListener('keyup',(e)=>keys[e.key.toLowerCase()]=false);
 
 function animate(){
   requestAnimationFrame(animate);
 
+  // Движение игрока
   const speed = 0.1;
   if(keys['w']) player.position.z -= speed;
   if(keys['s']) player.position.z += speed;
   if(keys['a']) player.position.x -= speed;
   if(keys['d']) player.position.x += speed;
 
-  // Камера
-  camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5);
+  // Камера 3-го лица
+  camera.position.set(player.position.x, player.position.y + 5, player.position.z + 8);
   camera.lookAt(player.position);
 
   // NPC движение
@@ -132,6 +148,5 @@ window.addEventListener('resize',()=>{
   }
 });
 </script>
-
 </body>
 </html>
