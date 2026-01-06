@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>MiniCraft 3D Prototype</title>
+<title>MiniCraft 3D Simple</title>
 <style>
   body { margin:0; overflow:hidden; background:#87CEEB; }
   #menu { 
@@ -49,7 +49,6 @@ function startGame(){
   inventory.style.display="flex";
   bgMusic.play();
 
-  // Сцена и камера
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
@@ -57,7 +56,6 @@ function startGame(){
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Свет
   const light = new THREE.DirectionalLight(0xffffff,1);
   light.position.set(10,20,10);
   scene.add(light);
@@ -72,18 +70,15 @@ function startGame(){
   // PointerLockControls
   controls = new THREE.PointerLockControls(camera, renderer.domElement);
   scene.add(controls.getObject());
+  document.body.addEventListener('click', ()=>controls.lock());
 
-  document.body.addEventListener('click', ()=>{
-    controls.lock();
-  });
-
-  // Биомы и земля
+  // Земля
   const size = 30;
   for(let x=-size/2;x<size/2;x++){
     for(let z=-size/2;z<size/2;z++){
-      let color=0x3a7d44;
-      if(x<0 && z<0) color=0xffffa0;
-      if(x>0 && z>0) color=0xffffff;
+      let color=0x3a7d44; // трава
+      if(x<0 && z<0) color=0xffffa0; // пустыня
+      if(x>0 && z>0) color=0xffffff; // снег
       const geo = new THREE.BoxGeometry(1,1,1);
       const mat = new THREE.MeshStandardMaterial({color});
       const cube = new THREE.Mesh(geo,mat);
@@ -92,7 +87,7 @@ function startGame(){
     }
   }
 
-  // Вода
+  // Вода (просто блок)
   const waterGeo = new THREE.BoxGeometry(10,0.5,10);
   const waterMat = new THREE.MeshStandardMaterial({color:0x1e90ff, transparent:true, opacity:0.7});
   const water = new THREE.Mesh(waterGeo, waterMat);
